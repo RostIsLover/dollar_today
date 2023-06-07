@@ -19,7 +19,7 @@ const (
 	USD           = "Доллар США"
 	EURO          = "Евро"
 	START         = "/start"
-	FIRST_MESSAGE = "Выберите валюту"
+	FIRST_MESSAGE = "Выберите валюту или введите сумму в рублях, чтобы перевести её в USD и EURO."
 	BOT_API_TOKEN = "6096941081:AAGe5wWH9HwDrHmPVEo5Jo8l8h9pjuEdyDk"
 )
 
