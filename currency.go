@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	DOLLAR        = "Доллар США"
+	USD           = "Доллар США"
 	EURO          = "Евро"
 	START         = "/start"
 	FIRST_MESSAGE = "Выберите валюту"
@@ -26,20 +26,20 @@ const (
 var (
 	numericKeyboard = tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton(DOLLAR),
+			tgbotapi.NewKeyboardButton(USD),
 		),
 		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton(EURO),
 		),
 	)
-	myValutes = make(map[string]float64)
+	myValutes   = make(map[string]float64)
+	currentTime = time.Now().Format("02/01/2006")
+	url         = "http://www.cbr.ru/scripts/XML_daily.asp?date_req=" + currentTime
+	method      = "GET"
+	client      = &http.Client{}
 )
 
 func main() {
-	currentTime := time.Now().Format("02/01/2006")
-	url := "http://www.cbr.ru/scripts/XML_daily.asp?date_req=" + currentTime
-	method := "GET"
-	client := &http.Client{}
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		fmt.Println(err)
@@ -48,17 +48,20 @@ func main() {
 	req.Header.Add("Cookie", "__ddg1_=bMz7QAI3fDT4y8GS26rJ")
 	req.Header.Add("Accept", "*/*")
 	req.Header.Add("User-Agent", "BatPhone/7.26.8")
+
 	res, err := client.Do(req)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(err.Error())
 		return
 	}
 	defer res.Body.Close()
+
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(err.Error())
 		return
 	}
+
 	data := string(body)
 	valCurs := new(CBRValCurs)
 	r := bytes.NewReader([]byte(data))
@@ -66,11 +69,11 @@ func main() {
 	d.CharsetReader = charset.NewReaderLabel
 	err = d.Decode(&valCurs)
 	if err != nil {
-		fmt.Printf("error: %v", err)
+		fmt.Println(err.Error())
 		return
 	}
 
-	addToMyValutes(valCurs.Val, DOLLAR, EURO)
+	addToMyValutes(valCurs.Val, USD, EURO)
 
 	bot, err := tgbotapi.NewBotAPI(BOT_API_TOKEN)
 	if err != nil {
@@ -78,11 +81,9 @@ func main() {
 	}
 
 	bot.Debug = true
-
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
 	u := tgbotapi.NewUpdate(0)
-
 	updates := bot.GetUpdatesChan(u)
 
 	for update := range updates {
@@ -95,11 +96,16 @@ func main() {
 		case START:
 			msg = tgbotapi.NewMessage(update.Message.Chat.ID, FIRST_MESSAGE)
 			msg.ReplyMarkup = numericKeyboard
-		case DOLLAR:
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("%f", myValutes[DOLLAR]))
+		case USD:
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("%.2f", myValutes[USD]))
 		case EURO:
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("%f", myValutes[EURO]))
-
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("%.2f", myValutes[EURO]))
+		default:
+			sum, err := strconv.Atoi(update.Message.Text)
+			if err != nil {
+				continue
+			}
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("USD: %.2f\nEURO: %.2f", float64(sum)/myValutes[USD], float64(sum)/myValutes[EURO]))
 		}
 		if _, err := bot.Send(msg); err != nil {
 			panic(err)
@@ -121,7 +127,6 @@ func addToMyValutes(vals []Valute, names ...string) {
 			}
 		}
 	}
-
 }
 
 type CBRValCurs struct {
