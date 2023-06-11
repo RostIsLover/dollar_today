@@ -1,4 +1,4 @@
-module yatest
+module dollar_today
 
 go 1.19
 
