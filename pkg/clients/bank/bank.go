@@ -67,16 +67,19 @@ func GetDailyRates() map[string]float64 {
 
 func addToMyValutes(vals []Valute, names ...string) map[string]float64 {
 	myValutes := make(map[string]float64)
-	for _, val := range vals {
-		for _, name := range names {
+	// TODO - replace linear search to binary search
+	for _, name := range names {
+		for _, val := range vals {
 			if val.Name == name {
 				f := val.Value
 				f = strings.Replace(f, ",", ".", -1)
 				s, err := strconv.ParseFloat(f, 64)
 				if err != nil {
 					fmt.Println(err.Error())
+					return nil
 				}
 				myValutes[name] = s
+				break
 			}
 		}
 	}
